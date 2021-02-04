@@ -16,11 +16,12 @@ const App = () => {
         <input onChange={onFileSelect} id="file-input" type="file"></input>
       </form>
       {file && (
-          <FileUploader file={file}>
-            {({bytesUploaded, pause, setPause}) => (
+          <FileUploader _file={file}>
+            {({bytesUploaded, pause, setPause, setCancel}) => (
               <React.Fragment>
-                <h1>UPLOADED= {(bytesUploaded / file.size) * 100} %</h1>
+                <h1>UPLOADED= {Math.round((bytesUploaded / file.size) * 100)} %</h1>
                 <button onClick={e => setPause(!pause)}>{pause ? '||' : '>>'}</button>
+                <button onClick={e => setCancel(true)}>cancel</button>
               </React.Fragment>
             )}
           </FileUploader>
