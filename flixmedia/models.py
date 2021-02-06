@@ -11,7 +11,7 @@ class ID(models.Model):
 class Flix(models.Model):
     title = models.CharField(max_length=255)
     tmdb_release_date = models.DateField()
-    flix_release_date = models.DateTimeField(auto_add_now=True)
+    flix_release_date = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         abstract = True
