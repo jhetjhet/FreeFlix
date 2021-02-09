@@ -5,7 +5,7 @@ from uuid import uuid4
 
 class Rate (models.Model):
     id = models.UUIDField(primary_key=True, editable=False, default=uuid4)
-    user = models.ManyToManyField(settings.AUTH_USER_MODEL, related_name='rated')
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=False, on_delete=models.SET_NULL, related_name='rated')
     score = models.IntegerField(
         null=False,
         blank=False,

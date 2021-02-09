@@ -41,6 +41,7 @@ class Movie(Media):
     class Meta (Media.Meta):
         constraints = [
             models.UniqueConstraint(fields=['id', 'genres'], name='movie_id_genre_unique_constraint'),
+            models.UniqueConstraint(fields=['id', 'rating'], name='movie_id_rating_unique_constraint'),
         ]
 
 class TV(Media):
@@ -64,3 +65,6 @@ class Episode(Flix):
 
     class Meta:
         ordering = ['episode_number']
+        constraints = [
+            models.UniqueConstraint(fields=['id', 'rating'], name='episode_id_rating_unique_constraint'),
+        ]
