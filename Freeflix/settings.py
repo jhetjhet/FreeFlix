@@ -43,6 +43,7 @@ INSTALLED_APPS = [
     'flixuser',
 
     'flixmedia.apps.FlixmediaConfig',
+    'flixfeed.apps.FlixfeedConfig',
 ]
 
 MIDDLEWARE = [

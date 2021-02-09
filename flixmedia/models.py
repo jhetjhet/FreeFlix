@@ -1,5 +1,6 @@
 from django.db import models
 from uuid import uuid4
+from flixfeed.models import Rate
 
 class ID(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid4, editable=False)
@@ -18,6 +19,7 @@ class Flix(ID):
         ordering = ['date_uploaded']
 
 class Media(Flix):
+    rating = models.ManyToManyField(Rate, related_name='%(model_name)s')
     genres = models.ManyToManyField('Genre')
 
     class Meta (Flix.Meta):
