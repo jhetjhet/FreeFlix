@@ -10,23 +10,21 @@ from .views import (
     EpisodeView,
 )
 
-router = DefaultRouter()
-router.register(r'genre', GenreView, basename='genre')
-router.register(r'movie', MovieView, basename='movie')
-
 # rest_framework_nested is use to make url path related
 # ex. to acces episode
 # /tv/<tv_pk>/season/<season_number>/episode/<episode_number>
-tv_router = nested_routers.DefaultRouter()
-tv_router.register(r'tv', TvView, basename='tv')
-tv_season_router = nested_routers.NestedDefaultRouter(tv_router, r'tv', lookup='tv')
+router = nested_routers.DefaultRouter()
+router.register(r'genre', GenreView, basename='genre')
+router.register(r'movie', MovieView, basename='movie')
+router.register(r'tv', TvView, basename='tv')
+
+tv_season_router = nested_routers.NestedDefaultRouter(router, r'tv', lookup='tv')
 tv_season_router.register(r'season', SeasonView, basename='season')
 tv_season_episode_router = nested_routers.NestedDefaultRouter(tv_season_router, r'season', lookup='season_number')
 tv_season_episode_router.register(r'episode', EpisodeView, basename='episode')
 
 urlpatterns = (
     path('', include(router.urls)),
-    path('', include(tv_router.urls)),
     path('', include(tv_season_router.urls)),
     path('', include(tv_season_episode_router.urls)),
 )

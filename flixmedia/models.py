@@ -19,7 +19,6 @@ class Flix(ID):
         ordering = ['date_uploaded']
 
 class Media(Flix):
-    rating = models.ManyToManyField(Rate, related_name='%(model_name)s')
     genres = models.ManyToManyField('Genre')
 
     class Meta (Flix.Meta):
@@ -37,6 +36,7 @@ class Genre(ID):
     )
 
 class Movie(Media):
+    rating = models.ManyToManyField(Rate, related_name='movie_ratings')
 
     class Meta (Media.Meta):
         constraints = [
@@ -58,6 +58,7 @@ class Season(Flix):
         ordering = ['season_number']
 
 class Episode(Flix):
+    rating = models.ManyToManyField(Rate, related_name='episode_ratings')
     season = models.ForeignKey("Season", on_delete=models.CASCADE, related_name="episodes")
     episode_number = models.IntegerField(unique=True)
 
