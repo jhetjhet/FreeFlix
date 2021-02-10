@@ -4,7 +4,7 @@ from flixfeed.models import Rate
 
 class ID(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid4, editable=False)
-    tmdb_id = models.IntegerField()
+    tmdb_id = models.IntegerField(unique=True)
 
     class Meta:
         abstract = True
@@ -25,7 +25,10 @@ class Media(Flix):
         abstract = True
 
 class Genre(ID):
-    name = models.CharField(max_length=255, unique=True)
+    # uniqness of name & tmdb_id is handled in api's
+    # but not programmatically so be carefull
+    name = models.CharField(max_length=255, unique=False)
+    tmdb_id = models.IntegerField(unique=False)
     GENRE_FOR_CHOICES = [
         ('mv', 'movie'),
         ('tv', 'tv'),
@@ -38,18 +41,18 @@ class Genre(ID):
 class Movie(Media):
     rating = models.ManyToManyField(Rate, related_name='movie_ratings')
 
-    class Meta (Media.Meta):
-        constraints = [
-            models.UniqueConstraint(fields=['id', 'genres'], name='movie_id_genre_unique_constraint'),
-            models.UniqueConstraint(fields=['id', 'rating'], name='movie_id_rating_unique_constraint'),
-        ]
+    # class Meta (Media.Meta):
+    #     constraints = [
+    #         models.UniqueConstraint(fields=['id', 'genres'], name='movie_id_genre_unique_constraint'),
+    #         models.UniqueConstraint(fields=['id', 'rating'], name='movie_id_rating_unique_constraint'),
+    #     ]
 
 class TV(Media):
-    
-    class Meta (Media.Meta):
-        constraints = [
-            models.UniqueConstraint(fields=['id', 'genres'], name='tv_id_genre_unique_constraint'),
-        ]
+    pass
+    # class Meta (Media.Meta):
+    #     constraints = [
+    #         models.UniqueConstraint(fields=['id', 'genres'], name='tv_id_genre_unique_constraint'),
+    #     ]
 
 class Season(Flix):
     tv = models.ForeignKey("TV", on_delete=models.CASCADE, related_name="seasons")
@@ -65,6 +68,6 @@ class Episode(Flix):
 
     class Meta:
         ordering = ['episode_number']
-        constraints = [
-            models.UniqueConstraint(fields=['id', 'rating'], name='episode_id_rating_unique_constraint'),
-        ]
+        # constraints = [
+        #     models.UniqueConstraint(fields=['id', 'rating'], name='episode_id_rating_unique_constraint'),
+        # ]

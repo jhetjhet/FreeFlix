@@ -142,8 +142,8 @@ REST_FRAMEWORK = {
 # DJOSER configuration
 DJOSER = {
     'PASSWORD_RESET_CONFIRM_URL': '#/password/reset/confirm/{uid}/{token}',
-    'USERNAME_RESET_CONFIRM_URL': '#/username/reset/confirm/{uid}/{token}',
-    'ACTIVATION_URL': '#/activate/{uid}/{token}',
+    # 'USERNAME_RESET_CONFIRM_URL': '#/username/reset/confirm/{uid}/{token}',
+    # 'ACTIVATION_URL': '#/activate/{uid}/{token}',
     'SEND_ACTIVATION_EMAIL': False,
     'SERIALIZERS': {
         'activation': 'djoser.serializers.ActivationSerializer',
@@ -157,7 +157,7 @@ DJOSER = {
         'username_reset': 'djoser.serializers.SendEmailResetSerializer',
         'username_reset_confirm': 'djoser.serializers.UsernameResetConfirmSerializer',
         'username_reset_confirm_retype': 'djoser.serializers.UsernameResetConfirmRetypeSerializer',
-        'user_create': 'flixuser.serializers.FlixerSerializer', #
+        'user_create': 'flixuser.serializers.FlixerCreateSerializer', #
         'user_create_password_retype': 'djoser.serializers.UserCreatePasswordRetypeSerializer',
         'user_delete': 'djoser.serializers.UserDeleteSerializer',
         'user': 'flixuser.serializers.FlixerSerializer', #
