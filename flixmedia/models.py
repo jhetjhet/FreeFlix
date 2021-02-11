@@ -39,20 +39,10 @@ class Genre(ID):
     )
 
 class Movie(Media):
-    rating = models.ManyToManyField(Rate, related_name='movie_ratings')
-
-    # class Meta (Media.Meta):
-    #     constraints = [
-    #         models.UniqueConstraint(fields=['id', 'genres'], name='movie_id_genre_unique_constraint'),
-    #         models.UniqueConstraint(fields=['id', 'rating'], name='movie_id_rating_unique_constraint'),
-    #     ]
+    ratings = models.ManyToManyField(Rate, related_name='movie_ratings')
 
 class TV(Media):
     pass
-    # class Meta (Media.Meta):
-    #     constraints = [
-    #         models.UniqueConstraint(fields=['id', 'genres'], name='tv_id_genre_unique_constraint'),
-    #     ]
 
 class Season(Flix):
     tv = models.ForeignKey("TV", on_delete=models.CASCADE, related_name="seasons")
@@ -62,12 +52,9 @@ class Season(Flix):
         ordering = ['season_number']
 
 class Episode(Flix):
-    rating = models.ManyToManyField(Rate, related_name='episode_ratings')
+    ratings = models.ManyToManyField(Rate, related_name='episode_ratings')
     season = models.ForeignKey("Season", on_delete=models.CASCADE, related_name="episodes")
     episode_number = models.IntegerField(unique=True)
 
     class Meta:
         ordering = ['episode_number']
-        # constraints = [
-        #     models.UniqueConstraint(fields=['id', 'rating'], name='episode_id_rating_unique_constraint'),
-        # ]
