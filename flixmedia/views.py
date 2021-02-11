@@ -4,6 +4,7 @@ from rest_framework.decorators import action
 from rest_framework.status import (
     HTTP_200_OK,
     HTTP_400_BAD_REQUEST,
+    HTTP_405_METHOD_NOT_ALLOWED,
 )
 
 from .models import (
@@ -33,29 +34,74 @@ class GenreView (viewsets.ModelViewSet):
     queryset = Genre.objects.all()
     lookup_value_regex = UUID4_REGEX
 
-class ModelRatingActionViewSet (viewsets.ModelViewSet):
+class GenreActionView (object):
+
+    @action(detail=True, methods=['get', 'post', 'put', 'delete'])
+    def genre(self, request, pk=None, *args, **kwargs):
+        media = self.get_object()
+
+        if request.method == 'GET':
+            return Response(GenreSerializer(media.genres.all(), many=True).data, status=HTTP_200_OK)
+        elif request.method == 'POST':
+            genre_serializer = GenreSerializer(data=request.data)
+            if not genre_serializer.is_valid():
+                return Response(genre_serializer.errors, status=HTTP_400_BAD_REQUEST)
+            genre_obj, created = Genre.objects.get_or_create(
+                tmdb_id=genre_serializer.data['tmdb_id'],
+                defaults=genre_serializer.data
+            )
+            media.genres.add(genre_obj)
+            data = GenreSerializer(genre_obj).data
+            data['created'] = created
+            return Response(data, status=HTTP_200_OK)
+        elif request.method =='DELETE':
+            if request.query_params.get('id') == None:
+                return Response(status=HTTP_400_BAD_REQUEST)
+            try:
+                get_object_or_404(media.genres, id=request.query_params.get('id')).delete()
+            except Exception as e:
+                return Response(e, status=HTTP_400_BAD_REQUEST)
+            return Response(status=HTTP_200_OK)
+        else:
+            return Response(status=HTTP_405_METHOD_NOT_ALLOWED)
+
+class RatingActionView (object):
     @action(detail=True, methods=['get', 'post', 'put', 'delete'])
     def rate(self, request, pk=None, *args, **kwargs):
+        media = self.get_object()
+
         if request.method == 'GET':
-            return get_object_or_404(Rate, user=request.user)
+            rate = get_object_or_404(media.ratings, user=request.user)
+            return Response(RateSerializer(rate).data, status=HTTP_200_OK)
         
         elif request.method == 'DELETE':
-            get_object_or_404(Rate, user=request.user).delete()
+            get_object_or_404(media.ratings, user=request.user).delete()
             return Response(status=HTTP_200_OK)
 
         elif request.method in ['POST', 'PUT']:
-            rating_serializer = RateSerializer(data={'score': request.data.get('score', None)})
+            score = request.data.get('score', None)
+            rating_serializer = RateSerializer(data={'score': score})
             if not rating_serializer.is_valid():
                 return Response(rating_serializer.errors, status=HTTP_400_BAD_REQUEST)
-        
-        return Response(status=HTTP_200_OK)
+            rating_obj, created = media.ratings.get_or_create(
+                user=request.user, 
+                defaults={
+                    'user': request.user,
+                    **rating_serializer.data
+                })
+            if not created and rating_obj.score != int(score):
+                rating_obj.score = score
+                rating_obj.save()
+            return Response(RateSerializer(rating_obj).data, status=HTTP_200_OK)
+        else:
+            return Response(status=HTTP_405_METHOD_NOT_ALLOWED)
     
-    def get_serializer_class(self):
-        if hasattr(self, 'action') and self.action == 'rate':
-            return RateSerializer
-        return self.flix_serializer_class
+    # def get_serializer_class(self):
+    #     if hasattr(self, 'action') and self.action == 'rate':
+    #         return RateSerializer
+    #     return self.flix_serializer_class
 
-class MovieView (ModelRatingActionViewSet):
+class MovieView (GenreActionView, RatingActionView, viewsets.ModelViewSet):
     flix_serializer_class = MovieSerializer
     queryset = Movie.objects.all()
     lookup_value_regex = UUID4_REGEX
@@ -77,7 +123,7 @@ class SeasonView (viewsets.ModelViewSet):
         tv = get_object_or_404(TV, pk=self.kwargs['tv_pk'])
         serializer.save(tv=tv)
 
-class EpisodeView (ModelRatingActionViewSet):
+class EpisodeView (RatingActionView, viewsets.ModelViewSet):
     flix_serializer_class = EpisodeSerializer
     lookup_field = 'episode_number'
     lookup_value_regex = r'\d+'
