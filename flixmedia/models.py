@@ -17,6 +17,9 @@ class Flix(ID):
     class Meta:
         abstract = True
         ordering = ['date_uploaded']
+    
+    def __str__(self):
+        return self.title
 
 class Media(Flix):
     genres = models.ManyToManyField('Genre')
