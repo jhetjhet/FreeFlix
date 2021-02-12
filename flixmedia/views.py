@@ -1,5 +1,6 @@
 from django.shortcuts import get_object_or_404
-from rest_framework import viewsets
+from django.db.models import Avg
+from rest_framework import viewsets, filters
 from rest_framework.decorators import action
 from rest_framework.status import (
     HTTP_200_OK,
@@ -95,21 +96,66 @@ class RatingActionView (object):
             return Response(RateSerializer(rating_obj).data, status=HTTP_200_OK)
         else:
             return Response(status=HTTP_405_METHOD_NOT_ALLOWED)
-    
-    # def get_serializer_class(self):
-    #     if hasattr(self, 'action') and self.action == 'rate':
-    #         return RateSerializer
-    #     return self.flix_serializer_class
 
 class MovieView (GenreActionView, RatingActionView, viewsets.ModelViewSet):
-    flix_serializer_class = MovieSerializer
+    default_serializer_class = MovieSerializer
     queryset = Movie.objects.all()
     lookup_value_regex = UUID4_REGEX
+    filter_backends = [
+        filters.SearchFilter,
+        filters.OrderingFilter,
+    ]
+    search_fields = [
+        'title',
+        'release_date',
+    ]
+    ordering_fields = [
+        'title',
+        'release_date',
+        'date_uploaded',
+        'average_ratings',
+    ]
+
+    def filter_queryset(self, queryset, *args, **kwargs):
+        if 'average_ratings' in self.request.query_params.get('ordering', []):
+            queryset = queryset.annotate(average_ratings=Avg('ratings__score'))
+        return super(MovieView, self).filter_queryset(queryset, *args, **kwargs)
+
+    def get_serializer_class(self):
+        if hasattr(self, 'action') and self.action == 'rate':
+            return RateSerializer
+        elif hasattr(self, 'action') and self.action == 'genre':
+            return GenreSerializer
+        return self.default_serializer_class
 
 class TvView (viewsets.ModelViewSet):
-    serializer_class = TVSerializer
+    default_serializer_class = TVSerializer
     queryset = TV.objects.all()
     lookup_value_regex = UUID4_REGEX
+    filter_backends = [
+        filters.SearchFilter,
+        filters.OrderingFilter,
+    ]
+    search_fields = [
+        'title',
+        'release_date',
+    ]
+    ordering_fields = [
+        'title',
+        'release_date',
+        'date_uploaded',
+        'average_ratings',
+    ]
+
+    def filter_queryset(self, queryset, *args, **kwargs):
+        if 'average_ratings' in self.request.query_params.get('ordering', []):
+            queryset = queryset.annotate(average_ratings=Avg('seasons__episodes__ratings__score'))
+        return super(TvView, self).filter_queryset(queryset, *args, **kwargs)
+
+    def get_serializer_class(self):
+        if hasattr(self, 'action') and self.action == 'genre':
+            return GenreSerializer
+        return self.default_serializer_class
 
 class SeasonView (viewsets.ModelViewSet):
     serializer_class = SeasonSerializer
@@ -124,7 +170,7 @@ class SeasonView (viewsets.ModelViewSet):
         serializer.save(tv=tv)
 
 class EpisodeView (RatingActionView, viewsets.ModelViewSet):
-    flix_serializer_class = EpisodeSerializer
+    default_serializer_class = EpisodeSerializer
     lookup_field = 'episode_number'
     lookup_value_regex = r'\d+'
 
@@ -138,3 +184,8 @@ class EpisodeView (RatingActionView, viewsets.ModelViewSet):
     def perform_create(self, serializer):
         season = self.get_season()
         serializer.save(season=season)
+
+    def get_serializer_class(self):
+        if hasattr(self, 'action') and self.action == 'rate':
+            return RateSerializer
+        return self.default_serializer_class
