@@ -5,6 +5,7 @@ from .models import (
     Season,
     Episode,
 )
+from django.db.models import Avg
 from rest_framework import serializers
 
 class GenreSerializer (serializers.ModelSerializer):
@@ -62,10 +63,14 @@ class MediaBaseSerializer (serializers.ModelSerializer):
         return _data
 
 class MovieSerializer (MediaBaseSerializer):
-    
+    average_ratings = serializers.SerializerMethodField()
+
     class Meta (MediaBaseSerializer.Meta):
         model = Movie
-        fields = MediaBaseSerializer.Meta.fields
+        fields = MediaBaseSerializer.Meta.fields + ('average_ratings', )
+
+    def get_average_ratings(self, obj):
+        return obj.ratings.aggregate(score_avg=(Avg('score'))).get('score_avg')
 
 class EpisodeSerializer (serializers.ModelSerializer):
     season_number = serializers.SlugRelatedField(read_only=True, slug_field='season_number')
@@ -118,8 +123,12 @@ class SeasonSerializer (serializers.ModelSerializer):
         )
 
 class TVSerializer (MediaBaseSerializer):
+    average_ratings = serializers.SerializerMethodField()
     seasons = SeasonSerializer(many=True, read_only=True)
 
     class Meta (MediaBaseSerializer.Meta):
         model = TV
-        fields = MediaBaseSerializer.Meta.fields + ('seasons',)
+        fields = MediaBaseSerializer.Meta.fields + ('average_ratings', 'seasons',)
+    
+    def get_average_ratings(self, obj):
+        return obj.seasons.aggregate(score_avg=Avg('episodes__ratings__score')).get('score_avg')
