@@ -46,15 +46,21 @@ class TV(Media):
 
 class Season(Flix):
     tv = models.ForeignKey("TV", on_delete=models.CASCADE, related_name="seasons")
-    season_number = models.IntegerField(unique=True)
+    season_number = models.IntegerField()
 
     class Meta:
         ordering = ['season_number']
+        constraints = [
+            models.UniqueConstraint(fields=['tv', 'season_number'], name='unique_season_number_per_tv'),
+        ]
 
 class Episode(Flix):
     ratings = models.ManyToManyField(Rate, related_name='episode_ratings')
     season = models.ForeignKey("Season", on_delete=models.CASCADE, related_name="episodes")
-    episode_number = models.IntegerField(unique=True)
+    episode_number = models.IntegerField()
 
     class Meta:
         ordering = ['episode_number']
+        constraints = [
+            models.UniqueConstraint(fields=['season', 'episode_number'], name='unique_episode_number_per_season'),
+        ]

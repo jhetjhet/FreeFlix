@@ -21,6 +21,7 @@ class MediaBaseSerializer (serializers.ModelSerializer):
     genres = GenreSerializer(many=True, required=False)
     
     class Meta:
+        model = None
         abstract = True
         fields = (
             'id',
@@ -55,12 +56,21 @@ class MediaBaseSerializer (serializers.ModelSerializer):
 
 class MovieSerializer (MediaBaseSerializer):
     
-    class Meta:
+    class Meta (MediaBaseSerializer.Meta):
         model = Movie
         fields = MediaBaseSerializer.Meta.fields
 
 class EpisodeSerializer (serializers.ModelSerializer):
     season_number = serializers.SlugRelatedField(read_only=True, slug_field='season_number')
+
+    def save(self, season=None, *args, **kwargs):
+        # Manual validation for season and episode_number UniqueConstraints
+        # in save method where season instance is available
+        episode_number = self.validated_data.get('episode_number')
+        season = season or self.instance.season
+        if (not self.instance or (self.instance and self.instance.episode_number != self.validated_data.get('episode_number'))) and season.episodes.filter(episode_number=episode_number).exists():
+            raise serializers.ValidationError({'UniqueConstraint':f'seaon {season.season_number} already have episode {episode_number}'})
+        super().save(season=season, *args, **kwargs)
 
     class Meta:
         model = Episode
@@ -78,6 +88,15 @@ class SeasonSerializer (serializers.ModelSerializer):
     tv = serializers.PrimaryKeyRelatedField(read_only=True)
     episodes = EpisodeSerializer(many=True, read_only=True)
 
+    def save(self, tv=None, *args, **kwargs):
+        # Manual validation for tv and season_number UniqueConstraints
+        # in save method where tv instance is available
+        season_number = self.validated_data.get('season_number')
+        tv = tv or self.instance.tv
+        if (not self.instance or (self.instance and self.instance.season_number != self.validated_data.get('season_number'))) and tv.seasons.filter(season_number=season_number).exists():
+            raise serializers.ValidationError({'UniqueConstraint': f"TV '{tv.title}' already have season {season_number}"})
+        super().save(tv=tv, *args, **kwargs)
+
     class Meta:
         model = Season
         fields = (
@@ -94,6 +113,6 @@ class SeasonSerializer (serializers.ModelSerializer):
 class TVSerializer (MediaBaseSerializer):
     seasons = SeasonSerializer(many=True, read_only=True)
 
-    class Meta:
+    class Meta (MediaBaseSerializer.Meta):
         model = TV
         fields = MediaBaseSerializer.Meta.fields + ('seasons',)
