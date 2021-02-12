@@ -42,6 +42,13 @@ class MediaBaseSerializer (serializers.ModelSerializer):
             )
             media.genres.add(genre_obj)
         return media
+    
+    def update(self, instance, validated_data):
+        instance.title = validated_data.get('title', instance.title)
+        instance.tmdb_id = validated_data.get('tmdb_id', instance.tmdb_id)
+        instance.release_date = validated_data.get('release_data', instance.release_date)
+        instance.save()
+        return instance
 
     def to_internal_value(self, data):
         _data = data.copy()
