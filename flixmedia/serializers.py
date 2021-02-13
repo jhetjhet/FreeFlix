@@ -67,7 +67,10 @@ class MovieSerializer (MediaBaseSerializer):
 
     class Meta (MediaBaseSerializer.Meta):
         model = Movie
-        fields = MediaBaseSerializer.Meta.fields + ('average_ratings', )
+        fields = MediaBaseSerializer.Meta.fields + ('video', 'average_ratings', )
+        extra_kwargs = {
+            'video': {'read_only': True},
+        }
 
     def get_average_ratings(self, obj):
         return obj.ratings.aggregate(score_avg=(Avg('score'))).get('score_avg')

@@ -1,6 +1,10 @@
 from django.db import models
 from uuid import uuid4
 from flixfeed.models import Rate
+from os import path
+import re
+
+INVALID_FILE_CHARS = re.compile(r'[\\/:*?"<>|\s]+')
 
 class ID(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid4, editable=False)
@@ -41,7 +45,12 @@ class Genre(ID):
         choices = GENRE_FOR_CHOICES,
     )
 
+def movie_file_path(instance, filename):
+    filename, ext = path.splitext(filename)
+    title = INVALID_FILE_CHARS.sub(' ', instance.title)
+    return f'movie/{title} {instance.tmdb_id}/{title}{ext}'
 class Movie(Media):
+    video = models.FileField(upload_to=movie_file_path, default=None)
     ratings = models.ManyToManyField(Rate, related_name='movie_ratings')
 
 class TV(Media):
