@@ -17,11 +17,11 @@ const App = () => {
       </form>
       {file && (
           <FileUploader _file={file}>
-            {({bytesUploaded, pause, setPause, setCancel}) => (
+            {({bytesUploaded, pause, setPause, cancelUpload}) => (
               <React.Fragment>
                 <h1>UPLOADED= {Math.round((bytesUploaded / file.size) * 100)} %</h1>
                 <button onClick={e => setPause(!pause)}>{pause ? '||' : '>>'}</button>
-                <button onClick={e => setCancel(true)}>cancel</button>
+                <button onClick={e => cancelUpload()}>cancel</button>
               </React.Fragment>
             )}
           </FileUploader>

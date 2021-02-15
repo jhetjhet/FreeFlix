@@ -18,10 +18,10 @@ const stringToHash = (str) => {
 const FileUploader = ({children, _file, onFinish}) => {
     // upload
     const [bytesUploaded, setBytesUploaded] = useState(0);
-    const [fileExt, setFileExt] = useState(undefined);
     const [chunkID, setChunkID] = useState(undefined);
     const [fileName, setFileName] = useState(undefined);
     const [file, setFile] = useState(null);
+    const [cancelTokenSource, setCancelTokenSource] = useState(null);
 
     // state
     const [pause, setPause] = useState(true);
@@ -33,11 +33,8 @@ const FileUploader = ({children, _file, onFinish}) => {
             init(_file);
         }else{
             if(!pause){
-                if(cancel) cancelUpload();
-                else{
-                    const remainSize = file.size - bytesUploaded;
-                    if(remainSize > 0) prepareChunk();
-                }
+                const remainSize = file.size - bytesUploaded;
+                if(remainSize > 0) prepareChunk();
             }
         }
     }, [bytesUploaded, pause, file, _file]);
@@ -49,14 +46,12 @@ const FileUploader = ({children, _file, onFinish}) => {
             _chunkID = uuidv4();
             cookie.save(_fileName, _chunkID);
         }
-        // var re = /(?:\.([^.]+))?$/;
         try {
             const resp = await axios.get(`http://localhost:8080/upload/${_chunkID}/`);
             setBytesUploaded(resp.data.uploaded);
         } catch (error) {
             console.error(error.message);
         }
-        // console.log(re.exec(file.name)[1]);
         console.log(_chunkID);
         setChunkID(_chunkID);
         setFileName(_fileName);
@@ -76,9 +71,13 @@ const FileUploader = ({children, _file, onFinish}) => {
 
     const uploadChunk = async (chunk, start, end, total) => {
         console.log(`bytes ${start}-${end}/${total}`);
+        const source = axios.CancelToken.source();
+        setCancelTokenSource(source);
+        setCancel()
         if(chunkID)
             try {
                 const resp = await axios.post(`http://localhost:8080/upload/${chunkID}/`, chunk, {
+                    cancelToken: source.token,
                     headers: {
                         'Content-Range': `bytes ${start}-${end}/${total}`
                     }
@@ -107,8 +106,8 @@ const FileUploader = ({children, _file, onFinish}) => {
     const cancelUpload = async () => {
         if(chunkID)
             try {
+                if(cancelTokenSource) cancelTokenSource.cancel(`${chunkID} file upload canceled.`);
                 axios.delete(`http://localhost:8080/upload/cancel/${chunkID}/`);
-                console.log('CANCELED');
                 finish();
             } catch (error) {
                 console.error(error.message);
@@ -118,11 +117,10 @@ const FileUploader = ({children, _file, onFinish}) => {
     const finish = () => {
         cookie.remove(fileName);
         setPause(true);
-        setCancel(false);
         setBytesUploaded(0);
     }
 
-    return children({bytesUploaded, pause, setPause, setCancel});
+    return children({bytesUploaded, pause, setPause, cancelUpload});
 }
 
 export default FileUploader;
