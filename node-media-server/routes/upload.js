@@ -90,9 +90,14 @@ router.post('/complete/:chunkID', async (req, res) => {
 router.delete('/cancel/:chunkID', async (req, res) => {
     try {
         var chunk = await Chunk.findByPk(req.params.chunkID);
-        fs.unlink(chunk.path, (err) => {});
-        await chunk.destroy();
-        res.status(200).end();
+        fs.unlink(chunk.path, async (err) => {
+            if(err)
+                res.status(500).end();
+            else{
+                await chunk.destroy();
+                res.status(200).end();
+            }
+        });
     } catch (error) {
         res.status(404).end();
     }
