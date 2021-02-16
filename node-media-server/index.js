@@ -11,7 +11,16 @@ const app = express();
 
 app.use(cors({origin: '*'}));
 
-app.use('/upload', uploadRoutes);
+app.use('/upload', uploadRoutes(
+    ({chunk, completed, canceled}, err) => {
+        console.log(chunk.uploaded);
+        if(completed){
+            console.log(chunk.path);
+            console.log(chunk.uploaded);
+            console.log(chunk.totalSize);
+        }
+    }
+));
 
 app.listen(8080, () => {
     console.log('Server running...');
