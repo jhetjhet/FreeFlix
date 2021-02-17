@@ -33,16 +33,21 @@ class Media(Flix):
     class Meta (Flix.Meta):
         abstract = True
 
-class VideoManager(object):
+class Video(models.Model):
+    save_to = None
+    video = models.FileField(null=True, default=None)
 
     def link_local_video(self, vid_path):
         _, filename = os.path.split(vid_path)
-        vid_name = filename if not self.upload_to else self.upload_to(self, filename)
+        vid_name = filename if not self.save_to else self.save_to(filename)
         vid_path_root = os.path.join(settings.MEDIA_ROOT, vid_name)
         Path(os.path.split(vid_path_root)[0]).mkdir(parents=True, exist_ok=True)
         os.rename(vid_path, vid_path_root)
         self.video.name = vid_name
         self.save()
+
+    class Meta:
+        abstract = True
 
 class Genre(ID):
     # uniqness of name & tmdb_id is handled in api's
@@ -59,11 +64,11 @@ class Genre(ID):
     )
 
 def movie_file_path(instance, filename):
-    filename, ext = os.path.splitext(filename)
+    _, ext = os.path.splitext(filename)
     title = INVALID_FILE_CHARS.sub(' ', instance.title)
-    return f'movie/{title} {instance.tmdb_id}/{title}{ext}'
-class Movie(Media):
-    video = models.FileField(upload_to=movie_file_path, default=None)
+    return f"movie/{title} {instance.tmdb_id}/{title}{ext}"
+class Movie(Media, Video):
+    save_to = movie_file_path
     ratings = models.ManyToManyField(Rate, related_name='movie_ratings')
 
 class TV(Media):
@@ -79,8 +84,23 @@ class Season(Flix):
             models.UniqueConstraint(fields=['tv', 'season_number'], name='unique_season_number_per_tv'),
         ]
 
-class Episode(Flix, VideoManager):
-    # upload_to = 
+def episode_file_path(instance, filename):
+    tv = instance.season.tv
+    tv_title = f"{tv.title} {tv.tmdb_id}"
+    tv_title = INVALID_FILE_CHARS.sub(' ', tv_title)
+    season_folder = f'season {instance.season.season_number}'
+    _, ext = os.path.splitext(filename)
+    episode_folder = f"episode {instance.episode_number}"
+    episode_title = "{0}.S{1}E{2}{3}".format(
+        tv.title, 
+        str(instance.season.season_number).rjust(2, '0'),
+        str(instance.episode_number).rjust(2, '0'),
+        ext
+    )
+    episode_title = INVALID_FILE_CHARS.sub(' ', episode_title)
+    return f"tv/{tv_title}/{season_folder}/{episode_folder}/{episode_title}"
+class Episode(Flix, Video):
+    save_to = episode_file_path
     ratings = models.ManyToManyField(Rate, related_name='episode_ratings')
     season = models.ForeignKey("Season", on_delete=models.CASCADE, related_name="episodes")
     episode_number = models.IntegerField()
