@@ -59,7 +59,7 @@ class Video(models.Model):
     def link_local_video(self, vid_path, move=False, save=True):
         old_video_path = self.__backup_and_delete_vid__()
 
-        _, filename = os.path.split(vid_path)
+        filename = os.path.basename(vid_path)
         vid_name = filename if not self.save_to else self.save_to(filename)
         vid_path_root = os.path.join(settings.MEDIA_ROOT, vid_name)
         Path(os.path.split(vid_path_root)[0]).mkdir(parents=True, exist_ok=True)
