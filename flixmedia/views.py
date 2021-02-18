@@ -28,7 +28,7 @@ from flixfeed.serializers import RateSerializer
 
 from rest_framework.response import Response
 
-UUID4_REGEX = lookup_value_regex = r'(?i)[0-9A-F]{8}-[0-9A-F]{4}-4[0-9A-F]{3}-[89AB][0-9A-F]{3}-[0-9A-F]{12}'
+UUID4_REGEX = r'(?i)[0-9A-F]{8}-[0-9A-F]{4}-4[0-9A-F]{3}-[89AB][0-9A-F]{3}-[0-9A-F]{12}'
 
 class GenreView (viewsets.ModelViewSet):
     serializer_class = GenreSerializer
