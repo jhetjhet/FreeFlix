@@ -1,8 +1,22 @@
 const {Sequelize, DataTypes, Model} = require('sequelize');
 const database = require('../database');
+const fs = require('fs');
 
-class Chunk extends Model { 
+class Chunk extends Model {
+    constructor(values, options){
+        super(values, options);
+        this.updateStats();
+    }
 
+    updateStats() {
+        try {
+            this.stats = fs.statSync(this.path);
+            this.uploaded = this.stats.size;
+        } catch (error) {
+            this.stats = null;
+            this.uploaded = 0;
+        }
+    }
 }
 
 Chunk.init({
@@ -18,17 +32,11 @@ Chunk.init({
     },
     path: {
         type: DataTypes.STRING,
-        allowNull: false
     },
     totalSize: {
         type: DataTypes.INTEGER,
         allowNull: false
     },
-    uploaded: {
-        type: DataTypes.INTEGER,
-        defaultValue: 0,
-        allowNull: false
-    }
 }, {
     sequelize: database,
     modelName: 'Chunk'
