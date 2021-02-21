@@ -15,16 +15,18 @@ const stringToHash = (str) => {
 
 const FileUploader = ({children, _file, onFinish, chunkSize=(1048576 * 3)}) => {
     // upload
-    const [bytesUploaded, setBytesUploaded] = useState(0);
+    const [bytesUploaded, setBytesUploaded] = useState(null);
     const [chunkID, setChunkID] = useState(undefined);
-    const [fileName, setFileName] = useState(undefined);
+    const [cookieName, setCookieName] = useState(undefined);
     const [file, setFile] = useState(null);
     const [cancelTokenSource, setCancelTokenSource] = useState(null);
 
     // state
     const [pause, setPause] = useState(true);
+    const [newUpload, setNewUpload] = useState(true);
 
     useEffect(() => {
+        console.log(`[uploaded]: ${bytesUploaded}`);
         if(file !== _file){
             setFile(_file);
             init(_file);
@@ -36,21 +38,24 @@ const FileUploader = ({children, _file, onFinish, chunkSize=(1048576 * 3)}) => {
         }
     }, [bytesUploaded, pause, file, _file]);
 
-    const init = async (file) => {
-        var _fileName = stringToHash(`${file.name}-${file.lastModified}-${file.size}`);
-        var _chunkID = cookie.load(_fileName);
-        if(!_chunkID){
-            _chunkID = uuidv4();
-            cookie.save(_fileName, _chunkID);
+    const init = (file) => {
+        var cookieName = stringToHash(`${file.name}-${file.lastModified}-${file.size}`);
+        var chunkid = cookie.load(cookieName);
+        console.log(`[cookie]: ${cookieName}`);
+        if(!chunkid){
+            chunkid = uuidv4();
+            cookie.save(cookieName, chunkid);
         }
-        try {
-            const resp = await axios.get(`http://localhost:8080/upload/${_chunkID}/${file.name}`);
+
+        axios.get(`http://localhost:8080/upload/${chunkid}/`).then((resp) => {
             setBytesUploaded(resp.data.uploaded);
-        } catch (error) {
-            console.error(error.message);
-        }
-        setChunkID(_chunkID);
-        setFileName(_fileName);
+            console.log(resp.data);
+        }).catch((err) => {
+            console.error(err);
+        });
+
+        setChunkID(chunkid);
+        setCookieName(cookieName);
     }
 
     const prepareChunk = () => {
@@ -59,60 +64,59 @@ const FileUploader = ({children, _file, onFinish, chunkSize=(1048576 * 3)}) => {
         const start = totalFileSize - remainSize;
         const end = start + Math.min(chunkSize, remainSize);
         const chunk = file.slice(start, end);
-        if(remainSize > 0 && remainSize > chunkSize)
-            uploadChunk(chunk, start, end, totalFileSize);
-        else
-            uploadComplete(chunk, start, end, totalFileSize);
+        uploadChunk(chunk, start, end, remainSize, totalFileSize);
     }
 
-    const uploadChunk = async (chunk, start, end, total) => {
-        console.log(`bytes ${start}-${end}/${total}`);
+    const uploadChunk = (chunk, start, end, remainSize, total) => {
+        var form = new FormData();
+        form.append("filename", file.name);
+        form.append("chunk", chunk);
+
+        var url;
+        if(remainSize > 0 && remainSize > chunkSize)
+            url = `http://localhost:8080/upload/${chunkID}/`;
+        else
+            url = `http://localhost:8080/upload/complete/${chunkID}/`;
+
         const source = axios.CancelToken.source();
         setCancelTokenSource(source);
-        if(chunkID)
-            try {
-                const resp = await axios.post(`http://localhost:8080/upload/${chunkID}/${file.name}/`, chunk, {
-                    cancelToken: source.token,
-                    headers: {
-                        'Content-Range': `bytes ${start}-${end}/${total}`
-                    }
-                });
-                setBytesUploaded(resp.data.uploaded);
-            } catch (error) {
-                console.error(error.message);
-                setPause(true);
-            }
-    }
 
-    const uploadComplete = async (chunk, start, end, total) => {
-        try {
-            const resp = await axios.post(`http://localhost:8080/upload/complete/${chunkID}/${file.name}/`, chunk, {
+        if(chunkID){
+            axios.post(url, form, {
+                cancelToken: source.token,
                 headers: {
-                    'Content-Range': `bytes ${start}-${end}/${total}`
+                    'Content-Range': `bytes ${start}-${end}/${total}`,
+                    'content-type': 'multipart/form-data',
                 }
+            }).then((resp) => {
+                setBytesUploaded(resp.data.uploaded);
+                if(resp.data.uploaded === file.size)
+                    finish();
+            }).catch((err) => {
+                console.error(err);
+                setPause(true);
             });
-            finish();
-        } catch (error) {
-            console.error(error.message);
-            setPause(true);
         }
     }
 
-    const cancelUpload = async () => {
-        if(chunkID)
-            try {
-                if(cancelTokenSource) cancelTokenSource.cancel(`${chunkID} file upload canceled.`);
-                axios.delete(`http://localhost:8080/upload/cancel/${chunkID}/${file.name}/`);
-                finish();
-            } catch (error) {
-                console.error(error.message);
-            }
+    const cancelUpload = () => {
+        if(chunkID && bytesUploaded > 0){
+            if(cancelTokenSource)
+                cancelTokenSource.cancel(`${chunkID} file upload canceled.`);
+            finish();
+            axios.delete(`http://localhost:8080/upload/cancel/${chunkID}/`).then((resp) => {
+                // finish();
+            }).catch(err => {
+                console.error(err);
+            });
+        }
     }
 
     const finish = () => {
-        cookie.remove(fileName);
+        cookie.remove(cookieName);
+        setFile(null);
         setPause(true);
-        setBytesUploaded(0);
+        setBytesUploaded(null);
     }
 
     return children({bytesUploaded, pause, setPause, cancelUpload});

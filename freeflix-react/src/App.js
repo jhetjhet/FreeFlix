@@ -1,4 +1,5 @@
 import React, {react, useState} from 'react';
+import axios from 'axios';
 import FileUploader from './components/FileUploader';
 
 const App = () => {
